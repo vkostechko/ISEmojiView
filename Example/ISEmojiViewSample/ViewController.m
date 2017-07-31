@@ -9,35 +9,34 @@
 #import "ViewController.h"
 #import "ISEmojiView.h"
 
-@interface ViewController ()<ISEmojiViewDelegate>
+@interface ViewController () <ISEmojiViewDelegate>
 
 @end
 
 @implementation ViewController
 
+#pragma mark - Lifecycle
+
 - (void)viewDidLoad {
     [super viewDidLoad];
-    
-    // init ISEmojiView
-    ISEmojiView *emojiView = [[ISEmojiView alloc] initWithTextField:self.textView delegate:self];
+    /*
+     // Init ISEmojiView
+     */
+    ISEmojiView *emojiView = [ISEmojiView new];
+    emojiView.delegate = self;
     self.textView.inputView = emojiView;
 
     [self.textView becomeFirstResponder];
 }
 
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
+#pragma mark - ISEmojiViewDelegate
+
+- (void)emojiView:(ISEmojiView *)emojiView didSelectEmoji:(NSString *)emoji {
+    [self.textView insertText:emoji];
 }
 
--(void)emojiView:(ISEmojiView *)emojiView didSelectEmoji:(NSString *)emoji{
-    self.textView.text = [self.textView.text stringByAppendingString:emoji];
-}
-
--(void)emojiView:(ISEmojiView *)emojiView didPressDeleteButton:(UIButton *)deletebutton{
-    if (self.textView.text.length > 0) {
-        NSRange lastRange = [self.textView.text rangeOfComposedCharacterSequenceAtIndex:self.textView.text.length-1];
-        self.textView.text = [self.textView.text substringToIndex:lastRange.location];
-    }
+- (void)emojiView:(ISEmojiView *)emojiView didPressDeleteButton:(UIButton *)deletebutton {
+    [self.textView deleteBackward];
 }
 
 @end

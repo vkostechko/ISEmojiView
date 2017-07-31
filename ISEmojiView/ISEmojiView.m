@@ -8,248 +8,457 @@
 
 #import "ISEmojiView.h"
 
-static const CGFloat EmojiWidth = 53;
-static const CGFloat EmojiHeight = 50;
-static const CGFloat EmojiFontSize = 32;
+#define EMOJI_SIZE CGSizeMake(45.f, 35.f)
+#define EMOJI_FONT_SIZE 30.f
+#define COLLECTION_INSET UIEdgeInsetsMake(10.f, 10.f, 38.f, 10.f)
+#define COLLECTION_MIN_LINE_SPACING 0.f
+#define COLLECTION_MIN_INTERITEM_SPACING 0.f
+#define IS_MAIN_BACKGROUND_COLOR [UIColor colorWithRed:249.f/255.f green:249.f/255.f blue:249.f/255.f alpha:1.f]
+#define TOP_PART_SIZE CGSizeMake(EMOJI_SIZE.width * 1.3, EMOJI_SIZE.height * 1.6)
+#define BOTTOM_PART_SIZE CGSizeMake(EMOJI_SIZE.width * 0.8, EMOJI_SIZE.height + 10)
 
-@interface ISEmojiView()<UIScrollViewDelegate>
+#define EMOJI_POP_VIEW_SIZE CGSizeMake(TOP_PART_SIZE.width,TOP_PART_SIZE.height + BOTTOM_PART_SIZE.height)
+#define POP_BACKGROUND_COLOR [UIColor whiteColor]
 
-/**
- *  All emoji characters
- */
-@property (nonatomic, strong) NSArray *emojis;
+#define SECTIONS @[@"People", @"Nature", @"Objects", @"Places", @"Symbols"]
+
+/// the emoji cell in the grid
+
+@interface ISEmojiCell : UICollectionViewCell {
+    UILabel* emojiLabel;
+}
+
+@property (nonatomic, strong, readonly, nullable) NSString* emoji;
+
+@end
+
+@implementation ISEmojiCell
+
+#pragma mark - Init
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        [self setupUI];
+    }
+    return self;
+}
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        [self setupUI];
+    }
+    return self;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)aDecoder {
+    self = [super initWithCoder:aDecoder];
+    if (self) {
+        [self setupUI];
+    }
+    return self;
+}
+
+#pragma mark - Public
+
+- (void)setEmoji:(NSString *)emoji {
+    emojiLabel.text = emoji;
+}
+
+#pragma mark - Private
+
+- (void)setupUI {
+    emojiLabel = [self emojiLabel];
+    emojiLabel.frame = self.bounds;
+    [self addSubview:emojiLabel];
+}
+
+- (UILabel*)emojiLabel {
+    UILabel* label = [UILabel new];
+    label.font = [UIFont fontWithName:@"Apple color emoji" size: EMOJI_FONT_SIZE];
+    label.textAlignment = NSTextAlignmentCenter;
+    label.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
+    return label;
+}
+
+@end
+
+
+
+
+@interface ISEmojiPopView : UIView {
+    UILabel* emojiLabel;
+}
+
+- (void)setEmoji:(NSString*)emoji;
+- (void)move:(CGPoint)location animated:(BOOL)animated;
+- (void)dismiss;
+
+@end
+
+
+@implementation ISEmojiPopView
+
+#pragma marl - Init
+
+- (instancetype)init {
+    self = [super initWithFrame:CGRectMake(0, 0, EMOJI_POP_VIEW_SIZE.width, EMOJI_POP_VIEW_SIZE.height)];
+    if (self) {
+        [self setupUI];
+    }
+    return self;
+}
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        [self setupUI];
+    }
+    return self;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)aDecoder {
+    self = [super initWithCoder:aDecoder];
+    if (self) {
+        [self setupUI];
+    }
+    return self;
+}
+
+#pragma mark - Public
+
+- (void)move:(CGPoint)location animated:(BOOL)animated {
+    [UIView animateWithDuration:(animated ? 0.08f : 0.f) animations:^{
+        self.alpha = 1.f;
+        self.frame = CGRectMake(location.x, location.y, self.frame.size.width, self.frame.size.height);
+    }completion:^(BOOL finished) {
+        self.hidden = NO;
+    }];
+}
+
+- (void)dismiss {
+    [UIView animateWithDuration:0.08f animations:^{
+        self.alpha = 0.f;
+    } completion:^(BOOL finished) {
+        self.hidden = YES;
+    }];
+}
+
+- (void)setEmoji:(NSString*)emoji {
+    self.emojiLabel.text = emoji;
+}
+
+
+#pragma mark - Private
+
+- (void)setupUI {
+    
+    // path
+    CGMutablePathRef path = CGPathCreateMutable();
+    CGPathAddRoundedRect(path, nil, CGRectMake(0.f, 0.f, TOP_PART_SIZE.width, TOP_PART_SIZE.height), 10.f, 10.f);
+    CGPathAddRoundedRect(path, nil, CGRectMake(TOP_PART_SIZE.width / 2.f - BOTTOM_PART_SIZE.width / 2.0, TOP_PART_SIZE.height - 10.f, BOTTOM_PART_SIZE.width, BOTTOM_PART_SIZE.height + 10.f), 5.f, 5.f);
+    
+    // border
+    CAShapeLayer *borderLayer = [CAShapeLayer layer];
+    borderLayer.path = path;
+    borderLayer.strokeColor = [UIColor colorWithWhite: 0.8f alpha: 1.f].CGColor; //UIColor.red.cgColor
+    borderLayer.lineWidth = 1.f;
+    [self.layer addSublayer:borderLayer];
+    
+    // mask
+    CAShapeLayer* maskLayer = [CAShapeLayer layer];
+    maskLayer.path = path;
+    
+    // content layer
+    CALayer* contentLayer = [CALayer layer];
+    contentLayer.frame = self.bounds;
+    contentLayer.backgroundColor = POP_BACKGROUND_COLOR.CGColor;
+    contentLayer.mask = maskLayer;
+    
+    [self.layer addSublayer:contentLayer];
+    
+    // add label
+    emojiLabel = [self emojiLabel];
+    emojiLabel.frame = CGRectMake(0.f, 0.f, self.bounds.size.width, TOP_PART_SIZE.height);
+    [self addSubview:emojiLabel];
+    
+    self.userInteractionEnabled = NO;
+    self.hidden = YES;
+}
+
+- (UILabel*)emojiLabel {
+    UILabel* label = [UILabel new];
+    label.font = [UIFont fontWithName:@"Apple color emoji" size: EMOJI_FONT_SIZE];
+    label.textAlignment = NSTextAlignmentCenter;
+    label.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
+    return label;
+}
+
+@end
+
+
+
+
+
+
+@interface ISEmojiView () <UICollectionViewDelegate, UICollectionViewDataSource> {
+    UICollectionView* collectionView;
+    UIPageControl* pageControl;
+    UIButton* deleteButton;
+}
+
+@property (nonatomic, strong) ISEmojiPopView *emojiPopView;
+
++ (NSString *)pathOfResourceInBundle:(NSString *)fileName andFileType:(NSString *)fileType;
 
 @end
 
 @implementation ISEmojiView
 
-- (CGRect)defaultFrame {
-    return CGRectMake(0, 0, CGRectGetWidth([UIScreen mainScreen].bounds), 216);
+#pragma mark - Init
+
+- (instancetype)initWithEmojies:(NSArray<NSString *> *)emojis {
+    self = [super init];
+    if (self) {
+        _isShowPopPreview = YES;
+        _emojis = [emojis copy];
+    }
+    return self;
 }
 
-- (instancetype)initWithFrame:(CGRect)frame{
+- (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
-        [self initUIWithFrame:frame];
+        _isShowPopPreview = YES;
+        [self setupUI];
     }
     return self;
 }
 
--(instancetype)initWithTextField:(UIView *)textField delegate:(id<ISEmojiViewDelegate>)delegate {
-    self = [super init];
-    if (self) {        
-        self.delegate = delegate;
-        self.textField = textField;
-    }
-    return self;
+#pragma mark - Private
+
+
+- (UICollectionView *)collectionView {
+    UICollectionViewFlowLayout *layout = [UICollectionViewFlowLayout new];
+    layout.itemSize = EMOJI_SIZE;
+    layout.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+    layout.minimumLineSpacing = COLLECTION_MIN_LINE_SPACING;
+    layout.minimumInteritemSpacing = COLLECTION_MIN_INTERITEM_SPACING;
+    layout.sectionInset = COLLECTION_INSET;
+    UICollectionView *collection = [[UICollectionView alloc] initWithFrame:CGRectZero collectionViewLayout:layout];
+    collection.showsHorizontalScrollIndicator = NO;
+    collection.showsVerticalScrollIndicator = NO;
+    collection.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
+    collection.backgroundColor = IS_MAIN_BACKGROUND_COLOR;
+    [collection registerClass:[ISEmojiCell class] forCellWithReuseIdentifier:@"cell"];
+    return collection;
 }
 
-- (void)initUIWithFrame:(CGRect)frame {
-    if (CGRectEqualToRect(frame, CGRectZero)) {
-        frame = [self defaultFrame];
+
+- (UIPageControl *)pageControl {
+    UIPageControl *pageContr = [UIPageControl new];
+    pageContr.hidesForSinglePage = YES;
+    pageContr.currentPage = 0;
+    pageContr.backgroundColor = [UIColor clearColor];
+    return pageContr;
+}
+
+- (UIButton *)deleteButton {
+    UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
+    [button setTitle:@"⌫" forState:UIControlStateNormal];
+    button.tintColor = [UIColor lightGrayColor];
+    return button;
+}
+
+- (ISEmojiPopView *)emojiPopView {
+    if (!_emojiPopView) {
+        _emojiPopView = [ISEmojiPopView new];
     }
-    
-    self.frame = frame;
-    
-    // init emojis
-    NSString *plistPath = [[NSBundle mainBundle] pathForResource:@"ISEmojiList" ofType:@"plist"];
-    self.emojis = [NSArray arrayWithContentsOfFile:plistPath];
-    
-    //
-    NSInteger rowNum = (CGRectGetHeight(frame) / EmojiHeight);
-    NSInteger colNum = (CGRectGetWidth(frame) / EmojiWidth);
-    NSInteger numOfPage = ceil((float)[self.emojis count] / (float)(rowNum * colNum));
-    
-    if (rowNum == 0 && colNum == 0) {
-        return;
+    return _emojiPopView;
+}
+
+- (NSArray <NSArray<NSString *> *>*)emojis {
+    if (!_emojis) {
+        _emojis = [[self defaultEmojis] copy];
     }
+    return _emojis;
+}
+
+
+- (CGRect)defaultFrame {
+    return CGRectMake(0.f, 0.f, UIScreen.mainScreen.bounds.size.width, 236.f);
+}
+
+- (void)setupUI {
+    self.frame = [self defaultFrame];
     
-    // init scrollview
-    self.scrollView = [[UIScrollView alloc] initWithFrame:frame];
-    self.scrollView.pagingEnabled = YES;
-    self.scrollView.showsHorizontalScrollIndicator = NO;
-    self.scrollView.showsVerticalScrollIndicator = NO;
-    self.scrollView.delegate = self;
-    self.scrollView.contentSize = CGSizeMake(CGRectGetWidth(frame) * numOfPage,
-                                             CGRectGetHeight(frame));
-    [self addSubview:self.scrollView];
+    // ScrollView
+    collectionView = [self collectionView];
+    collectionView.frame = self.bounds;
+    collectionView.dataSource = self;
+    collectionView.delegate = self;
+    [self addSubview:collectionView];
+    [collectionView reloadData];
     
-    // add emojis
+    // PageControl
+    pageControl = [self pageControl];
+    [pageControl addTarget:self action:@selector(pageControlTouched:) forControlEvents:UIControlEventTouchUpInside];
+    pageControl.pageIndicatorTintColor = [UIColor colorWithRed:229.f/255.f green:229.f/255.f blue:229.f/255.f alpha:1.f];
+    pageControl.currentPageIndicatorTintColor = [UIColor colorWithRed:153.f/255.f green: 153.f/255.f blue: 153.f/255.f alpha: 1];
+    pageControl.autoresizingMask = (UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin);
+    [self addSubview:pageControl];
     
-    NSInteger row = 0;
-    NSInteger column = 0;
-    NSInteger page = 0;
+    // DeleteButton
+    deleteButton = [self deleteButton];
+    [deleteButton addTarget:self action:@selector(deleteButtonPressed:) forControlEvents:UIControlEventTouchUpInside];
+    [self addSubview:deleteButton];
     
-    NSInteger emojiPointer = 0;
-    for (int i = 0; i < [self.emojis count] + numOfPage - 1; i++) {
-        
-        // Pagination
-        if (i % (rowNum * colNum) == 0) {
-            page ++;    // Increase the number of pages
-            row = 0;    // the number of lines is 0
-            column = 0; // the number of columns is 0
-        }else if (i % colNum == 0) {
-            // NewLine
-            row += 1;   // Increase the number of lines
-            column = 0; // The number of columns is 0
+    // Long press to pop preview
+    UILongPressGestureRecognizer* emojiLongPressGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(emojiLongPressHandle:)];
+    [self addGestureRecognizer:emojiLongPressGestureRecognizer];
+    
+    [self addSubview:_emojiPopView];
+}
+
+- (void)updateControlLayout {
+    self.frame = [self defaultFrame];
+    
+    // update page control
+    NSUInteger pageCount = collectionView.numberOfSections;
+    CGSize pageControlSizes = [pageControl sizeForNumberOfPages:pageCount];
+    pageControl.frame = CGRectMake(CGRectGetMidX(self.frame) - pageControlSizes.width / 2.0,
+                                   self.frame.size.height - pageControlSizes.height,
+                                   pageControlSizes.width,
+                                   pageControlSizes.height);
+    pageControl.numberOfPages = pageCount;
+    
+    // update delete button
+    deleteButton.frame = CGRectMake(self.frame.size.width - 48.f, self.frame.size.height - 40.f, 40.f, 40.f);
+}
+
+- (void)layoutSubviews {
+    [self updateControlLayout];
+}
+
+- (NSArray<NSString*>*)defaultEmojis {
+//    NSString * filePath = [ISEmojiView pathOfResourceInBundle:@"ISEmojiList" andFileType:@"plist"];
+    NSString *filePath = [[NSBundle mainBundle] pathForResource:@"ISEmojiList" ofType:@"plist"];
+    NSDictionary* sections = [NSDictionary dictionaryWithContentsOfFile:filePath];
+    NSMutableArray* emojiList = [NSMutableArray new];
+    for (NSString* sectionName in SECTIONS) {
+        NSArray* emojis = sections[sectionName];
+        if (emojis) {
+            [emojiList addObject:emojis];
         }
-        
-        CGRect currentRect = CGRectMake(((page-1) * frame.size.width) + (column * EmojiWidth),
-                                        row * EmojiHeight,
-                                        EmojiWidth,
-                                        EmojiHeight);
-        
-        if (row == (rowNum - 1) && column == (colNum - 1)) {
-            // last position of page, add delete button
-            
-            ISDeleteButton *deleteButton = [ISDeleteButton buttonWithType:UIButtonTypeCustom];
-            [deleteButton addTarget:self action:@selector(deleteButtonPressed:) forControlEvents:UIControlEventTouchUpInside];
-            deleteButton.frame = currentRect;
-            deleteButton.tintColor = [UIColor blackColor];
-            [self.scrollView addSubview:deleteButton];
-            
-        }else{
-            NSString *emoji = self.emojis[emojiPointer++];
-            
-            // init Emoji Button
-            UIButton *emojiButton = [UIButton buttonWithType:UIButtonTypeCustom];
-            emojiButton.titleLabel.font = [UIFont fontWithName:@"Apple color emoji" size:EmojiFontSize];
-            [emojiButton setTitle:emoji forState:UIControlStateNormal];
-            [emojiButton addTarget:self action:@selector(emojiButtonPressed:) forControlEvents:UIControlEventTouchUpInside];
-            
-            emojiButton.frame = currentRect;
-            [self.scrollView addSubview:emojiButton];
-        }
-        
-        column++;
     }
-    
-    // add PageControl
-    self.pageControl = [[UIPageControl alloc] init];
-    self.pageControl.hidesForSinglePage = YES;
-    self.pageControl.currentPage = 0;
-    self.pageControl.backgroundColor = [UIColor clearColor];
-    self.pageControl.numberOfPages = numOfPage;
-    CGSize pageControlSize = [self.pageControl sizeForNumberOfPages:numOfPage];
-    self.pageControl.frame = CGRectMake(CGRectGetMidX(frame) - (pageControlSize.width / 2),
-                                        CGRectGetHeight(frame) - pageControlSize.height + 5,
-                                        pageControlSize.width,
-                                        pageControlSize.height);
-    [self.pageControl addTarget:self action:@selector(pageControlTouched:) forControlEvents:UIControlEventValueChanged];
-    [self addSubview:self.pageControl];
-    
-    // default allow animation
-    self.popAnimationEnable = NO;
-    
-    self.scrollView.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin;
+    return [emojiList mutableCopy];
 }
 
-#pragma mark Action
+#pragma mark - UICollectionViewDataSource
 
-- (void)pageControlTouched:(UIPageControl *)sender {
-    CGRect bounds = self.scrollView.bounds;
-    bounds.origin.x = CGRectGetWidth(bounds) * sender.currentPage;
-    [self.scrollView scrollRectToVisible:bounds animated:YES];
+- (NSInteger)numberOfSectionsInCollectionView:(UICollectionView *)collectionView {
+    return self.emojis.count;
 }
+
+- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
+    NSArray* emojiesInSection = self.emojis[section];
+    return emojiesInSection.count;
+}
+
+- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView_ cellForItemAtIndexPath:(NSIndexPath *)indexPath {
+    ISEmojiCell * cell = [collectionView_ dequeueReusableCellWithReuseIdentifier:@"cell" forIndexPath:indexPath];
+    [cell setEmoji:self.emojis[indexPath.section][indexPath.row]];
+    return cell;
+}
+
+#pragma mark - UICollectionViewDelegate
+
+- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+    NSString* emoji = self.emojis[indexPath.section][indexPath.row];
+    [self.delegate emojiView:self didSelectEmoji:emoji];
+}
+
+#pragma mark - UIScrollViewDelegate
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
-    CGFloat pageWidth = CGRectGetWidth(scrollView.frame);
-    NSInteger newPageNumber = floor((scrollView.contentOffset.x - pageWidth / 2) / pageWidth) + 1;
-    if (self.pageControl.currentPage == newPageNumber) {
+    UICollectionViewCell* firstVisibleCell = collectionView.visibleCells.firstObject;
+    if (firstVisibleCell) {
+        NSIndexPath* indexPath = [collectionView indexPathForCell:firstVisibleCell];
+        pageControl.currentPage = indexPath.section;
+    }
+}
+
+//MARK: LongPress
+
+- (BOOL)longPressLocationInEdge:(CGPoint)location {
+    CGRect edgeRect = UIEdgeInsetsInsetRect(collectionView.bounds, COLLECTION_INSET);
+    return CGRectContainsPoint(edgeRect, location);
+}
+
+- (void)emojiLongPressHandle:(UILongPressGestureRecognizer *)sender {
+    if (!self.isShowPopPreview) {
         return;
     }
-    self.pageControl.currentPage = newPageNumber;
-}
-
-- (void)emojiButtonPressed:(UIButton *)button {
     
-    // Add a simple scale animation
-    CABasicAnimation *animation = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
-    animation.byValue = @0.3;
-    animation.duration = 0.1;
-    animation.autoreverses = YES;
-    [button.layer addAnimation:animation forKey:nil];
-
-    if (self.popAnimationEnable) {
-        // Animation emojibutton
-        UIButton *animationEmojiButton = [UIButton buttonWithType:UIButtonTypeCustom];;
-        [animationEmojiButton setTitle: [button titleForState:UIControlStateNormal] forState:UIControlStateNormal];
-        animationEmojiButton.titleLabel.font = [UIFont fontWithName:@"Apple color emoji" size:EmojiFontSize];
-        
-        // Conver frame from scrollview to self and add to self
-        animationEmojiButton.frame = [button.superview convertRect:button.frame toView:self];
-        [self addSubview:animationEmojiButton];
-        
-        // get animation traget position from textField view
-        CGPoint newPoint = [self.textField convertPoint:self.textField.center toView:self];
-        [UIView animateWithDuration:0.3 animations:^{
-            animationEmojiButton.center = newPoint;
-            animationEmojiButton.alpha = 0;
-        } completion:^(BOOL finished) {
-            if (finished) {
-                // Callback
-                if ([self.delegate respondsToSelector:@selector(emojiView:didSelectEmoji:)]) {
-                    [self.delegate emojiView:self didSelectEmoji:button.titleLabel.text];
-                }
-                [animationEmojiButton removeFromSuperview];
+    CGPoint location = [sender locationInView:collectionView];
+    
+    if ([self longPressLocationInEdge:location]) {
+        NSIndexPath* indexPath = [collectionView indexPathForItemAtPoint:location];
+        UICollectionViewLayoutAttributes *attr = [collectionView layoutAttributesForItemAtIndexPath:indexPath];
+        if (attr) {
+            NSString* emoji = self.emojis[indexPath.section][indexPath.row];
+            if (sender.state == UIGestureRecognizerStateEnded) {
+                [_emojiPopView dismiss];
+                [self.delegate emojiView:self didSelectEmoji:emoji];
+            }else{
+                CGRect cellRect = attr.frame;
+                CGRect cellFrameInSuperView = [collectionView convertRect:cellRect toView:self];
+                [_emojiPopView setEmoji:emoji];
+                CGPoint emojiPopLocaltion = CGPointMake(cellFrameInSuperView.origin.x - ((TOP_PART_SIZE.width - BOTTOM_PART_SIZE.width) / 2.0) + 5.f,
+                                                        cellFrameInSuperView.origin.y - TOP_PART_SIZE.height - 10.f);
+                [_emojiPopView move: emojiPopLocaltion animated: sender.state != UITouchPhaseBegan];
             }
-        }];
-    }else{
-        // Callback
-        if ([self.delegate respondsToSelector:@selector(emojiView:didSelectEmoji:)]) {
-            [self.delegate emojiView:self didSelectEmoji:button.titleLabel.text];
+        }else{
+            [_emojiPopView dismiss];
         }
+    }else{
+        [_emojiPopView dismiss];
     }
 }
 
-- (void)deleteButtonPressed:(UIButton *)button{
-    // Add a simple scale animation
-    CABasicAnimation *animation = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
-    animation.toValue = @0.9;
-    animation.duration = 0.1;
-    animation.autoreverses = YES;
-    [button.layer addAnimation:animation forKey:nil];
-    
-    // Callback
-    if ([self.delegate respondsToSelector:@selector(emojiView:didPressDeleteButton:)]) {
-        [self.delegate emojiView:self didPressDeleteButton:button];
-    }
+#pragma mark - Actions
+
+- (void)emojiButtonPressed:(UIButton* )sender {
+    NSString* emoji = sender.titleLabel.text;
+    [self.delegate emojiView:self didSelectEmoji:emoji];
 }
 
-@end
+- (void)deleteButtonPressed:(UIButton *)sender {
+    [self.delegate emojiView:self didPressDeleteButton:sender];
+}
 
-@implementation ISDeleteButton
+- (void)pageControlTouched:(UIPageControl *)sender {
+    CGRect bounds = collectionView.bounds;
+    bounds.origin.x = bounds.size.width * sender.currentPage;
+    [collectionView scrollRectToVisible:bounds animated:YES];
+}
 
-/**
- *  Draw the delete key
- *
- *  @param rect Context Rect
- */
--(void)drawRect:(CGRect)rect{
+//MARK: Tools
 
-    // Rectangle Drawing
-    UIBezierPath* rectanglePath = UIBezierPath.bezierPath;
-    [rectanglePath moveToPoint: CGPointMake(5, 25.05)];
-    [rectanglePath addLineToPoint: CGPointMake(20.16, 36)];
-    [rectanglePath addLineToPoint: CGPointMake(45.5, 36)];
-    [rectanglePath addLineToPoint: CGPointMake(45.5, 13.5)];
-    [rectanglePath addLineToPoint: CGPointMake(20.16, 13.5)];
-    [rectanglePath addLineToPoint: CGPointMake(5, 25.05)];
-    [rectanglePath closePath];
-    [self.tintColor setStroke];
-    rectanglePath.lineWidth = 1;
-    [rectanglePath stroke];
++ (NSBundle *)thisBundle {
+    NSBundle* podBundle = [NSBundle bundleForClass:[ISEmojiView class]];
+    NSURL* bundleURL = [podBundle URLForResource:@"ISEmojiView" withExtension:@"bundle"];
+    if (bundleURL) {
+        return [NSBundle bundleWithURL:bundleURL];
+    }
     
-    
-    // Bezier Drawing
-    UIBezierPath* bezierPath = UIBezierPath.bezierPath;
-    [bezierPath moveToPoint: CGPointMake(26.5, 20)];
-    [bezierPath addLineToPoint: CGPointMake(36.5, 29.5)];
-    [bezierPath moveToPoint: CGPointMake(36.5, 20)];
-    [bezierPath addLineToPoint: CGPointMake(26.5, 29.5)];
-    [self.tintColor setStroke];
-    bezierPath.lineWidth = 1;
-    [bezierPath stroke];
+    return [NSBundle new];
+}
+
++ (NSString *)pathOfResourceInBundle:(NSString *)fileName andFileType:(NSString *)fileType {
+    NSString* filePath = [[self thisBundle] pathForResource:fileName ofType:fileType];
+    return filePath;
 }
 
 @end

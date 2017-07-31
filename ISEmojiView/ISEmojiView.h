@@ -8,78 +8,49 @@
 
 #import <UIKit/UIKit.h>
 
-@protocol ISEmojiViewDelegate;
-
 /**
  *  The custom keyboard view
  */
-@interface ISEmojiView : UIView
+@class ISEmojiView;
 
-/**
- *  ISEmojiView Delegate
- */
-@property (nonatomic, assign) id<ISEmojiViewDelegate> delegate;
-
-/**
- *  Emoji container used to store all the elements
- */
-@property (nonatomic, strong) UIScrollView *scrollView;
-
-/**
- *  UIPageControl for next page
- */
-@property (nonatomic, strong) UIPageControl *pageControl;
-
-/**
- *  the textField view (eg:TextField,TextView)
- */
-@property (nonatomic, strong) UIView *textField;
-
-/**
- *  Are animation allowed (default:NO)
- *
- *  require set textField to get point
- */
-@property (nonatomic, assign) BOOL popAnimationEnable;
-
-/**
- *  init ISEmojiView
- */
-- (instancetype)initWithTextField:(UIView *)textField
-                         delegate:(id<ISEmojiViewDelegate>)delegate;
-
-@end
-
-/**
- *  ISEmojiView Delegate
- *
- *  Used to respond to some of the operations callback
+/*
+ // emoji view action callback delegate
  */
 @protocol ISEmojiViewDelegate <NSObject>
 
-/**
- *  When you choose a Emoji
- *
- *  @param emojiView The emoji keyboard view
- *  @param emoji     The selected emoji character
+/*
+ // did press a emoji button
+ // - Parameters:
+ //     - emojiView: the emoji view
+ //     - emoji: a emoji
  */
--(void)emojiView:(ISEmojiView *)emojiView didSelectEmoji:(NSString *)emoji;
+- (void)emojiView:(nonnull ISEmojiView *)emojiView didSelectEmoji:(nonnull NSString *)emoji;
 
-/**
- *  When the touch bottom right corner of the delete key
- *
- *  You should remove the last character(emoji) in the text box
- *  @param emojiView    The emoji keyboard view
- *  @param deletebutton The delete button
+/*
+ // will delete last character in you input view
+ // - Parameter emojiView: the emoji view
  */
--(void)emojiView:(ISEmojiView *)emojiView didPressDeleteButton:(UIButton *)deletebutton;
+- (void)emojiView:(nonnull ISEmojiView *)emojiView didPressDeleteButton:(nonnull UIButton *)deleteButton;
 
 @end
 
+@interface ISEmojiView : UIView
+
+/*
+ // the delegate for callback
+ */
+@property (nonatomic, weak, nullable) id<ISEmojiViewDelegate> delegate;
+
+/*
+ // long press to pop preview effect like iOS10 system emoji keyboard, Default is true
+ */
+@property (nonatomic, assign) BOOL isShowPopPreview;
 
 /**
- *  The Delete Button
- *
- *  You do not care about it
+ *  All emoji characters
  */
-@interface ISDeleteButton : UIButton    @end
+@property (nonatomic, strong, nonnull) NSArray <NSArray<NSString *> *>* emojis;
+
+- (nullable instancetype)initWithEmojies:(nonnull NSArray <NSArray<NSString *> *> *)emojis;
+
+@end
