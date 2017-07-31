@@ -236,6 +236,11 @@
     return self;
 }
 
+- (void)setEmojiBackgroundColor:(UIColor *)emojiBackgroundColor {
+    _emojiBackgroundColor = emojiBackgroundColor;
+    collectionView.backgroundColor = emojiBackgroundColor;
+}
+
 #pragma mark - Private
 
 
@@ -250,7 +255,7 @@
     collection.showsHorizontalScrollIndicator = NO;
     collection.showsVerticalScrollIndicator = NO;
     collection.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
-    collection.backgroundColor = IS_MAIN_BACKGROUND_COLOR;
+    collection.backgroundColor = self.emojiBackgroundColor ?: IS_MAIN_BACKGROUND_COLOR;
     [collection registerClass:[ISEmojiCell class] forCellWithReuseIdentifier:@"cell"];
     return collection;
 }

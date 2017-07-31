@@ -46,6 +46,11 @@
  */
 @property (nonatomic, assign) BOOL isShowPopPreview;
 
+/*
+ // Background color
+ */
+@property (nonatomic, strong) UIColor* emojiBackgroundColor;
+
 /**
  *  All emoji characters
  */
