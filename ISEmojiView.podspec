@@ -19,4 +19,6 @@ Pod::Spec.new do |s|
   s.resource  = "ISEmojiView/ISEmojiList.plist"
 
   s.requires_arc = true
+
+  s.ios.deployment_target = '8.0'
 end
